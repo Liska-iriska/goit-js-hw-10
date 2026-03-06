@@ -1,15 +1,15 @@
-import flatpickr from "flatpickr";
-import "flatpickr/dist/flatpickr.min.css";
-// Описаний у документації
-import iziToast from "izitoast";
-// Додатковий імпорт стилів
-import "izitoast/dist/css/iziToast.min.css";
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
+import iziToast from 'izitoast';
+import 'izitoast/dist/css/iziToast.min.css';
 
-
-const startButton = document.querySelector("button[data-start]");
+const startButton = document.querySelector('button[data-start]');
 const input = document.querySelector('#datetime-picker');
 
+startButton.disabled = true;
+
 let userSelectedDate = null;
+let timerId = null;
 
 const options = {
   enableTime: true,
@@ -17,76 +17,67 @@ const options = {
   defaultDate: new Date(),
   minuteIncrement: 1,
   onClose(selectedDates) {
-    console.log(selectedDates[0]);
+    const selectedDate = selectedDates[0];
 
-    if (selectedDates[0] < new Date()) {
-        startButton.disabled = true;
-        // alert("Please choose a date in the future");
-        iziToast.error({
-      title: 'Error',
-      message: 'Please choose a date in the future',
-      position: 'topRight',
-    });
-        userSelectedDate = null;
+    if (selectedDate <= new Date()) {
+      startButton.disabled = true;
+      userSelectedDate = null;
+      iziToast.error({
+        title: 'Error',
+        message: 'Please choose a date in the future',
+        position: 'topRight',
+      });
     } else {
-        startButton.disabled = false;
-        userSelectedDate = selectedDates[0];
+      startButton.disabled = false;
+      userSelectedDate = selectedDate;
     }
   },
-}; 
+};
 
+flatpickr(input, options);
 
+startButton.addEventListener('click', () => {
+  startButton.disabled = true;
+  input.disabled = true;
 
- startButton.addEventListener("click", () => {
-    startButton.disabled = true;
-    input.disabled = true;
+  timerId = setInterval(() => {
+    const currentTime = Date.now();
+    const difference = userSelectedDate - currentTime;
 
-    const timer = setInterval(() => {
-        const currentTime = Date.now();
-        const difference = userSelectedDate - currentTime;
+    if (difference <= 0) {
+      clearInterval(timerId);
+      input.disabled = false;
+      startButton.disabled = true;
+      updateTimerInterface({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      return;
+    }
 
-        if (difference <= 0) {
-            clearInterval(timer);
-            startButton.disabled = false;
-            return;
-        }
-
-        const time = convertMs(difference);
-
-        updateTimerInterface(time);
-    }, 1000);
+    const time = convertMs(difference);
+    updateTimerInterface(time);
+  }, 1000);
 });
 
 function convertMs(ms) {
-
   const second = 1000;
   const minute = second * 60;
   const hour = minute * 60;
   const day = hour * 24;
 
-  // Remaining days
   const days = Math.floor(ms / day);
-  // Remaining hours
   const hours = Math.floor((ms % day) / hour);
-  // Remaining minutes
   const minutes = Math.floor(((ms % day) % hour) / minute);
-  // Remaining seconds
   const seconds = Math.floor((((ms % day) % hour) % minute) / second);
 
   return { days, hours, minutes, seconds };
 }
 
 function addZero(value) {
-    return String(value).padStart(2, '0');
+  return String(value).padStart(2, '0');
 }
 
-function updateTimerInterface ({days, hours, minutes, seconds}) {
-    document.querySelector('[data-days]').textContent = addZero(days);
-    document.querySelector('[data-hours]').textContent = addZero(hours);
-    document.querySelector('[data-minutes]').textContent = addZero(minutes);
-    document.querySelector('[data-seconds]').textContent = addZero(seconds);
+function updateTimerInterface({ days, hours, minutes, seconds }) {
+  document.querySelector('[data-days]').textContent = addZero(days);
+  document.querySelector('[data-hours]').textContent = addZero(hours);
+  document.querySelector('[data-minutes]').textContent = addZero(minutes);
+  document.querySelector('[data-seconds]').textContent = addZero(seconds);
 }
-
-flatpickr(input, options);
-
-
